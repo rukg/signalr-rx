@@ -1,0 +1,32 @@
+{
+  "name": "signalr-rx",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "@microsoft/signalr": "^5.0.5",
+    "rxjs": "^6.6.7"
+  },
+  "devDependencies": {
+    "@types/jest": "^26.0.22",
+    "jest": "^26.6.3",
+    "ts-jest": "^26.5.4",
+    "typescript": "^4.2.4"
+  },
+  "scripts": {
+    "test": "jest --config jestconfig.json",
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rukg/signalr-rx.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rukg/signalr-rx/issues"
+  },
+  "homepage": "https://github.com/rukg/signalr-rx#readme"
+}
