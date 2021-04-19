@@ -1,3 +1,3 @@
-import {SignalrHub} from './src/signalr-hub';
+import {SignalRHub, createDefaultConnection} from './src/signalr-hub';
 
-export {SignalrHub}
+export {SignalRHub, createDefaultConnection}

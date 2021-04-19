@@ -1,24 +1,23 @@
-import * as signalR from '@microsoft/signalr';
-import {HubConnection} from '@microsoft/signalr';
+import {HubConnection, HubConnectionBuilder} from '@microsoft/signalr';
 import {combineLatest, defer, Observable, Subject} from 'rxjs';
 import {map, mapTo, shareReplay} from 'rxjs/operators';
 
+type Connection = HubConnection | string;
 type SubjectsMap = { [key: string]: Subject<unknown> };
 
-export class SignalrHub {
+export class SignalRHub {
 
-    private readonly subjects: SubjectsMap
-    private readonly connection;
+    private readonly subjects: SubjectsMap;
+    private readonly connection: HubConnection;
 
-
-    start$ = defer(() => this.connection.start())
+    readonly start$ = defer(() => this.connection.start())
         .pipe(
             mapTo(true),
             shareReplay(1)
         );
 
-    constructor(readonly url: string) {
-        this.connection = createHub(url);
+    constructor(connection: Connection) {
+        this.connection = connection instanceof HubConnection ? connection : createDefaultConnection(connection);
         this.subjects = {};
     }
 
@@ -39,9 +38,8 @@ export class SignalrHub {
 
 }
 
-
-export function createHub(url: string): HubConnection {
-    return new signalR.HubConnectionBuilder()
+export function createDefaultConnection(url: string): HubConnection {
+    return new HubConnectionBuilder()
         .withUrl(url)
         .build();
 }
