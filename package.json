@@ -1,7 +1,7 @@
 {
   "name": "signalr-rx",
-  "version": "1.0.0.1",
-  "description": "",
+  "version": "1.0.1",
+  "description": "Rxjs SignalR wrapper",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
