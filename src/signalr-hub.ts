@@ -1,45 +1,48 @@
-import {HubConnection, HubConnectionBuilder} from '@microsoft/signalr';
-import {combineLatest, defer, Observable, Subject} from 'rxjs';
-import {map, mapTo, shareReplay} from 'rxjs/operators';
+import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
+import { combineLatest, defer, Observable, Subject } from 'rxjs';
+import { map, mapTo, shareReplay } from 'rxjs/operators';
 
-type Connection = HubConnection | string;
+type Protocol = 'http' | 'https';
+type ConnectionString = `${Protocol}${string}`;
+type Connection = HubConnection | ConnectionString;
 type SubjectsMap = { [key: string]: Subject<unknown> };
 
 export class SignalRHub {
-
     private readonly subjects: SubjectsMap;
     private readonly connection: HubConnection;
 
-    readonly start$ = defer(() => this.connection.start())
-        .pipe(
-            mapTo(true),
-            shareReplay(1)
-        );
+    public readonly connect$: Observable<boolean> = defer(() => this.connection.start()).pipe(
+        mapTo(true),
+        shareReplay({ refCount: true, bufferSize: 1 }),
+    );
 
     constructor(connection: Connection) {
-        this.connection = connection instanceof HubConnection ? connection : createDefaultConnection(connection);
+        this.connection =
+            connection instanceof HubConnection ? connection : createDefaultConnection(connection);
+
         this.subjects = {};
     }
 
-    on<T>(eventName: string): Observable<T> {
-        const subject = this.ensureEventSubject<T>(eventName);
-        this.connection.on(eventName, (data: T) => subject.next(data));
+    public on<T>(event: string): Observable<T> {
+        const subject = this.ensureEventSubject<T>(event);
+        this.connection.on(event, (data: T) => subject.next(data));
         return subject.asObservable();
     }
 
-    stream<T>(event: string): Observable<T> {
-        return combineLatest([this.start$, this.on<T>(event)]).pipe(
-            map(([_, value]: [boolean, T]) => value));
+    public stream<T>(event: string): Observable<T> {
+        return combineLatest([this.connect$, this.on<T>(event)]).pipe(
+            map(([_, value]: [boolean, T]) => value),
+        );
     }
 
     private ensureEventSubject<T>(eventName: string): Subject<T> {
-        return (this.subjects[eventName] as Subject<T>) ??= new Subject<T>();
+        return ((this.subjects[eventName] as Subject<T>) ??= new Subject<T>());
     }
-
 }
 
 export function createDefaultConnection(url: string): HubConnection {
     return new HubConnectionBuilder()
         .withUrl(url)
+        .withAutomaticReconnect()
         .build();
 }
