@@ -16,7 +16,7 @@ describe('SignalRHub', function () {
         it('should be create one subject for duplicate event names', done => {
 
             const s1 = hub.stream<string>('test-event');
-            const s2 = hub.stream<string>('TEST-EVENT');
+            const s2 = hub.stream<string>('test-event');
 
             combineLatest([s1, s2]).subscribe(([r1, r2]) => {
 
