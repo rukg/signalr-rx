@@ -7,7 +7,7 @@ describe('SignalRHub', function () {
 
     const connection = new HubConnectionBuilder().withUrl('http://localhost:5000/hub-name').build();
     jest.spyOn(connection, 'start').mockImplementation(() => Promise.resolve());
-    const hub = new SignalRHub(connection)
+    const hub = new SignalRHub(connection);
 
     describe('stream', function () {
 
@@ -15,8 +15,8 @@ describe('SignalRHub', function () {
 
         it('should be create one subject for duplicate event names', done => {
 
-            const s1 = hub.stream<string>('test-event');
-            const s2 = hub.stream<string>('test-event');
+            const s1 = hub.on<string>('test-event');
+            const s2 = hub.on<string>('test-event');
 
             combineLatest([s1, s2]).subscribe(([r1, r2]) => {
 
