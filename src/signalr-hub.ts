@@ -1,26 +1,17 @@
 import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
-import { combineLatest, defer, Observable, Subject } from 'rxjs';
-import { map, mapTo, shareReplay } from 'rxjs/operators';
+import { from, Observable, Subject } from 'rxjs';
 
 type Protocol = 'http' | 'https';
 type ConnectionString = `${Protocol}${string}`;
-type Connection = HubConnection | ConnectionString;
 type SubjectsMap = { [key: string]: Subject<unknown> };
 
 export class SignalRHub {
-    private readonly subjects: SubjectsMap;
-    private readonly connection: HubConnection;
+    private readonly subjects: SubjectsMap = {};
 
-    public readonly connect$: Observable<boolean> = defer(() => this.connection.start()).pipe(
-        mapTo(true),
-        shareReplay({ refCount: true, bufferSize: 1 }),
-    );
+    constructor(private readonly connection: HubConnection) {}
 
-    constructor(connection: Connection) {
-        this.connection =
-            connection instanceof HubConnection ? connection : createDefaultConnection(connection);
-
-        this.subjects = {};
+    public connect(): Observable<void> {
+        return from(this.connection.start());
     }
 
     public on<T>(event: string): Observable<T> {
@@ -29,18 +20,30 @@ export class SignalRHub {
         return subject.asObservable();
     }
 
-    public stream<T>(event: string): Observable<T> {
-        return combineLatest([this.connect$, this.on<T>(event)]).pipe(
-            map(([_, value]: [boolean, T]) => value),
-        );
+    public off(event: string): void {
+        const subject = this.subjects[event];
+
+        if (subject) {
+            this.connection.off(event);
+            subject.complete();
+
+            delete this.subjects[event];
+        }
     }
 
-    private ensureEventSubject<T>(eventName: string): Subject<T> {
-        return ((this.subjects[eventName] as Subject<T>) ??= new Subject<T>());
+    public dispose(): void {
+        for (let key in this.subjects) {
+            this.off(key);
+        }
+    }
+
+    private ensureEventSubject<T>(event: string): Subject<T> {
+        this.subjects[event] = this.subjects[event] || new Subject<T>();
+        return this.subjects[event] as Subject<T>;
     }
 }
 
-export function createDefaultConnection(url: string): HubConnection {
+export function createDefaultConnection(url: ConnectionString): HubConnection {
     return new HubConnectionBuilder()
         .withUrl(url)
         .withAutomaticReconnect()
