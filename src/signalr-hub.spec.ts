@@ -1,32 +1,35 @@
-import {HubConnectionBuilder} from '@microsoft/signalr';
-import {combineLatest, of} from 'rxjs';
-import {SignalRHub} from './signalr-hub';
-
+import { combineLatest, of } from 'rxjs';
+import { createDefaultConnection, SignalRHub } from './signalr-hub';
+import { TestScheduler } from 'rxjs/testing';
 
 describe('SignalRHub', function () {
-
-    const connection = new HubConnectionBuilder().withUrl('http://localhost:5000/hub-name').build();
+    const connection = createDefaultConnection('http://localhost:5000/hub-name');
     jest.spyOn(connection, 'start').mockImplementation(() => Promise.resolve());
     const hub = new SignalRHub(connection);
 
-    describe('stream', function () {
+    let scheduler: TestScheduler;
 
+    beforeEach(
+        () =>
+            (scheduler = new TestScheduler((actual, expected) => {
+                expect(actual).toEqual(expected);
+            })),
+    );
+
+    describe('on', function () {
         const on = jest.spyOn(hub, 'on').mockImplementation(() => of('event-payload'));
 
-        it('should be create one subject for duplicate event names', done => {
+        it('should be create one subject for duplicate event names', () => {
+            scheduler.run(({ expectObservable }) => {
+                const s1$ = hub.on<string>('test-event');
+                const s2$ = hub.on<string>('test-event');
 
-            const s1 = hub.on<string>('test-event');
-            const s2 = hub.on<string>('test-event');
+                const combined$ = combineLatest([s1$, s2$]);
+                const expectedMarble = '(a|)';
+                const expectedEvents = { a: ['event-payload', 'event-payload'] };
 
-            combineLatest([s1, s2]).subscribe(([r1, r2]) => {
-
-                expect(on).toBeCalledTimes(2);
-                expect(r1).toBe(r2)
-                done();
-            })
-
+                expectObservable(combined$).toBe(expectedMarble, expectedEvents);
+            });
         });
-
     });
-
 });
